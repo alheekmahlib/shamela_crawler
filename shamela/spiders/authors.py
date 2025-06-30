@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from typing import ClassVar
+from typing import ClassVar, Union
 
 from scrapy.http import Response
 from scrapy.linkextractors import LinkExtractor
@@ -15,7 +15,7 @@ class Authors(CrawlSpider):
 
     rules = (Rule(LinkExtractor(allow=r'author/'), callback='parse_item', follow=False),)
 
-    def parse_item(self, response: Response) -> Generator[dict[str, str | int], None, None]:
+    def parse_item(self, response: Response) -> Generator[dict[str, Union[str, int]], None, None]:
         yield {
             'id': get_number_from_url(response.url),
             'name': response.css('h1::text').get(),

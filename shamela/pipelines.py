@@ -8,7 +8,7 @@ from collections.abc import Callable
 from functools import wraps
 from io import BufferedWriter
 from pathlib import Path
-from typing import Any, TypeVar, cast
+from typing import Any, TypeVar, Union, cast
 
 from scrapy import Spider
 from scrapy.crawler import Crawler
@@ -88,7 +88,7 @@ class DatabasePipeline:
         return category
 
     @commit_session
-    def _handle_author(self, session: Session, author_item: dict[str, str]) -> Author | None:
+    def _handle_author(self, session: Session, author_item: dict[str, str]) -> Union[Author, None]:
         author = session.query(Author).filter_by(id=author_item['id']).first()
         if author:
             for attr in self.author_update_fields:
@@ -111,8 +111,8 @@ class DatabasePipeline:
 
 class BookJSONExportPipeline:
     def __init__(self) -> None:
-        self.exporter: BaseItemExporter | None = None
-        self.file: BufferedWriter | None = None
+        self.exporter: Union[BaseItemExporter, None] = None
+        self.file: Union[BufferedWriter, None] = None
 
     @classmethod
     def from_crawler(cls, crawler: Crawler) -> 'BookJSONExportPipeline':
@@ -142,8 +142,8 @@ class BookJSONExportPipeline:
 class BookEPUBExportPipeline:
     def __init__(self, update_hamesh: bool = False) -> None:
         self.update_hamesh = update_hamesh
-        self.exporter: BaseItemExporter | None = None
-        self.file: BufferedWriter | None = None
+        self.exporter: Union[BaseItemExporter, None] = None
+        self.file: Union[BufferedWriter, None] = None
 
     @classmethod
     def from_crawler(cls, crawler: Crawler) -> 'BookEPUBExportPipeline':

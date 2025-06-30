@@ -2,7 +2,7 @@ import re
 from collections.abc import Generator
 from enum import Enum
 from re import Pattern
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Union
 
 from scrapy import Request, Selector
 from scrapy.http import Response
@@ -11,7 +11,7 @@ from scrapy.spiders import Spider
 
 from shamela.utils import get_number_from_url
 
-TocType = list[dict[str, Any] | list[dict[str, Any]]]
+TocType = list[Union[dict[str, Any], list[dict[str, Any]]]]
 
 
 class Selectors(Enum):
@@ -44,7 +44,9 @@ class Book(Spider):
         self.start_urls = [f'https://shamela.ws/book/{book_id}']
         self.vol = vol
 
-    def parse(self, response: Response, **kwargs: Any) -> Generator[dict[str, str | int]]:
+    def parse(
+        self, response: Response, **kwargs: Any
+    ) -> Generator[dict[str, Union[str, int]], None, None]:
         html = response.css(Selectors.PAGE_CONTENT.value)
         html.css(Selectors.SEARCH.value).drop()  # Remove "Search" button
         toc_el = html.css(Selectors.INDEX.value)
@@ -69,7 +71,7 @@ class Book(Spider):
 
     def parse_book_text(  # noqa: C901, PLR0912
         self, response: Response, **kwargs: Any
-    ) -> Generator[dict[str, str | int]]:
+    ) -> Generator[dict[str, Union[str, int]], None, None]:
         """
         Parse the book text pages
         :param response:
@@ -93,9 +95,7 @@ class Book(Spider):
                     volumes[part.css('::text').get()] = int(
                         part.css('::attr(href)').re_first(r'(\d+)#')
                     )
-                data['info']['volumes'] = self._get_start_end_pages(
-                    volumes, data['info']['all_pages']
-                )
+                data['info']['volumes'] = self._get_start_end_pages(volumes)
             # Check if the required volume is valid
             if self.vol and not response.css(f'{Selectors.PAGE_PARTS_MENU.value} li a::text')[
                 1:
@@ -149,7 +149,7 @@ class Book(Spider):
                 meta={'data': data},
             )
 
-    def _parse_toc(self, toc: SelectorList, seen: set | None = None) -> TocType:
+    def _parse_toc(self, toc: SelectorList, seen: Union[set, None] = None) -> TocType:
         """
         Parse the table of contents into a list of dictionaries and sub-lists
         :param toc: table of contents
@@ -232,36 +232,18 @@ class Book(Spider):
         return data
 
     @staticmethod
-    def _get_start_end_pages(volumes: dict[str, int], pages: int) -> dict[str, tuple[int, int]]:
+    def _get_start_end_pages(volumes: dict[str, int]) -> dict[str, tuple[int, int]]:
         """
-        Calculate start and end pages for each volume.
-
-        :param volumes: dict mapping volume names to their starting page numbers
-        :param pages: total number of pages in the book
-        :return: dict mapping volume names to (start_page, end_page) tuples
+        Get start and end pages for each volume
+        :param volumes: dict of volumes and their last page number
+        :return: dict of volumes and their start and end pages
         """
-        if not volumes:
-            return {}
-
         start_end_pages = {}
+        prev_volume_name = None
 
-        # Sort volume names - try numeric sorting first, fall back to sorting by page number
-        def sort_key(volume_name: str) -> tuple[int, str]:
-            try:
-                return (int(volume_name), volume_name)
-            except ValueError:
-                return (volumes[volume_name], volume_name)
-
-        sorted_volume_names = sorted(volumes.keys(), key=sort_key)
-        for i, volume_name in enumerate(sorted_volume_names, start=1):
-            start_page = volumes[volume_name]
-
-            if i < len(sorted_volume_names):
-                next_volume_name = sorted_volume_names[i]
-                end_page = volumes[next_volume_name] - 1
-            else:
-                end_page = pages
-
+        for volume_name, end_page in volumes.items():
+            start_page = 1 if not prev_volume_name else volumes[prev_volume_name] + 1  # type: ignore[index]
             start_end_pages[volume_name] = (start_page, end_page)
+            prev_volume_name = volume_name
 
         return start_end_pages

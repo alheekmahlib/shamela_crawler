@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from typing import ClassVar
+from typing import ClassVar, Union
 
 from scrapy.http import Response
 from scrapy.linkextractors import LinkExtractor
@@ -15,7 +15,7 @@ class Books(CrawlSpider):
 
     rules = (Rule(LinkExtractor(allow=r'category/'), callback='parse_item', follow=True),)
 
-    def parse_item(self, response: Response) -> Generator[dict[str, str | int], None, None]:
+    def parse_item(self, response: Response) -> Generator[dict[str, Union[str, int]], None, None]:
         for book in response.css('.book_item'):
             yield {
                 'title': book.css('a.book_title::text').get(),

@@ -3,7 +3,7 @@ from copy import deepcopy
 from html import unescape
 from io import BytesIO
 from re import Pattern
-from typing import Any, BinaryIO
+from typing import Any, BinaryIO, Union
 
 from ebooklib import epub
 from lxml.etree import Element, QName, tostring
@@ -48,7 +48,7 @@ EPUB_TYPE = QName('http://www.idpf.org/2007/ops', 'type')
 
 class EpubItemExporter(BaseItemExporter):
     def __init__(
-        self, file: BytesIO | BinaryIO, update_hamesh: bool = False, **kwargs: Any
+        self, file: Union[BytesIO, BinaryIO], update_hamesh: bool = False, **kwargs: Any
     ) -> None:
         super().__init__(**kwargs)
         self.file = file
@@ -196,7 +196,7 @@ class EpubItemExporter(BaseItemExporter):
         return unescape(element_text)
 
     def create_toc_depth_map(
-        self, toc: list[dict[str, Any]], depth_map: dict[str, int] | None = None, depth: int = 1
+        self, toc: list[dict[str, Any]], depth_map: Union[dict[str, int], None] = None, depth: int = 1
     ) -> dict[str, int]:
         if depth_map is None:
             depth_map = {}
@@ -243,7 +243,7 @@ class EpubItemExporter(BaseItemExporter):
                 toc[index] = self._sections_map.get(element['text'], None)
 
     def generate_toc(self, toc: list) -> None:
-        toc_list: list[epub.Link | str] = deepcopy(toc)
+        toc_list: list[Union[epub.Link, str]] = deepcopy(toc)
         self._update_toc_list(toc_list)
         toc_list.insert(0, epub.Link('nav.xhtml', 'فهرس الموضوعات', 'nav'))
         toc_list.insert(0, epub.Link('info.xhtml', 'بطاقة الكتاب', 'info'))

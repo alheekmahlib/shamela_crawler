@@ -1,5 +1,5 @@
 from collections.abc import Generator
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Union
 
 from scrapy import Spider
 from scrapy.http import Response
@@ -14,7 +14,7 @@ class CategoriesSpider(Spider):
 
     def parse(
         self, response: Response, **kwargs: Any
-    ) -> Generator[dict[str, str | int], None, None]:
+    ) -> Generator[dict[str, Union[str, int]], None, None]:
         for category in response.css('.cat_title'):
             yield {
                 'id': get_number_from_url(category.css('::attr(href)').get()),
